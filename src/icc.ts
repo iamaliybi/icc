@@ -47,7 +47,7 @@ import type { IccOptions } from './types/options';
  *
  * @example Broadcasting between two unrelated components
  * ```ts
- * import icc from 'icc';
+ * import icc from 'icc-js';
  *
  * // In the product card
  * icc.send('cart:item-added', { id: 'sku-1', qty: 2 });
@@ -65,7 +65,7 @@ import type { IccOptions } from './types/options';
  *
  * @example An isolated bus, scoped to a feature or a test
  * ```ts
- * import { createIcc } from 'icc';
+ * import { createIcc } from 'icc-js';
  *
  * const bus = createIcc<CheckoutEvents, CheckoutRequests>();
  * ```
