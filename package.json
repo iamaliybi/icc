@@ -1,6 +1,6 @@
 {
-  "name": "icc",
-  "version": "0.4.0",
+  "name": "icc-js",
+  "version": "1.0.0",
   "description": "Inter-Component Communication: a tiny, strongly typed, zero-dependency event bus for the browser, modelled after the Electron IPC API.",
   "keywords": [
     "event-bus",

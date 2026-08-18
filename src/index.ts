@@ -70,7 +70,7 @@ export type {
  *
  * @example A bus scoped to one feature, typed inline
  * ```ts
- * import { createIcc } from 'icc';
+ * import { createIcc } from 'icc-js';
  *
  * interface CheckoutEvents { 'step:changed': number }
  * interface CheckoutRequests { 'cart:total': () => number }
@@ -128,12 +128,12 @@ const resolveDefaultBus = (): Icc => {
 /**
  * The application-wide bus, shared by every module that imports it.
  *
- * Also the default export, so `import icc from 'icc'` and
- * `import { icc } from 'icc'` give you the same instance.
+ * Also the default export, so `import icc from 'icc-js'` and
+ * `import { icc } from 'icc-js'` give you the same instance.
  *
  * @example
  * ```ts
- * import icc from 'icc';
+ * import icc from 'icc-js';
  *
  * const off = icc.on('cart:item-added', (item) => badge.increment(item.qty));
  * icc.send('cart:item-added', { id: 'sku-1', qty: 2 });

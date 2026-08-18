@@ -21,7 +21,7 @@
  * // icc.d.ts
  * import type { CartItem } from './models';
  *
- * declare module 'icc' {
+ * declare module 'icc-js' {
  *   interface IccEvents {
  *     'cart:item-added': CartItem;
  *     'theme:change': 'dark' | 'light';
@@ -54,7 +54,7 @@ export interface IccEvents {}
  * // icc.d.ts
  * import type { User } from './models';
  *
- * declare module 'icc' {
+ * declare module 'icc-js' {
  *   interface IccRequests {
  *     'user:fetch': (id: string) => User;   // handler may be async, declare `User`
  *     'app:version': () => string;          // no request payload

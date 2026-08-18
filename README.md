@@ -1,6 +1,13 @@
-# icc
+# icc-js
+
+[![npm](https://img.shields.io/npm/v/icc-js.svg)](https://www.npmjs.com/package/icc-js)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/icc-js.svg)](https://bundlephobia.com/package/icc-js)
+[![dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](https://www.npmjs.com/package/icc-js?activeTab=dependencies)
+[![license](https://img.shields.io/npm/l/icc-js.svg)](LICENSE)
 
 **Inter-Component Communication** — a tiny, strongly typed, zero-dependency event bus for the browser, modelled after the Electron IPC API.
+
+> Published as **`icc-js`** because `icc` was already taken on npm. Everything you import is still named `icc`.
 
 Components that sit far apart in the tree often need to talk: a toast triggered from a service, a cart badge updated from a product card, a modal closed from a router guard. Lifting state up, threading callbacks through five layers, or reaching for a full state manager is usually more machinery than the problem deserves. `icc` gives those components one shared channel registry with the API you already know from Electron.
 
@@ -14,13 +21,13 @@ Components that sit far apart in the tree often need to talk: a toast triggered 
 ## Installation
 
 ```bash
-npm install icc
+npm install icc-js
 ```
 
 ## Quick start
 
 ```ts
-import icc from 'icc';
+import icc from 'icc-js';
 
 // Somewhere in a header component
 const off = icc.on('cart:item-added', (item) => {
@@ -72,7 +79,7 @@ Declare your channels once and every call site becomes type safe. Events map a c
 // icc.d.ts
 import type { User } from './types';
 
-declare module 'icc' {
+declare module 'icc-js' {
   interface IccEvents {
     'cart:item-added': { id: string; qty: number };
     'modal:close': void; // a channel without payload
@@ -99,7 +106,7 @@ Until those interfaces are augmented, every channel is accepted with an `unknown
 Prefer explicit generics over a global declaration? Create your own bus:
 
 ```ts
-import { createIcc } from 'icc';
+import { createIcc } from 'icc-js';
 
 const bus = createIcc<MyEvents, MyRequests>();
 ```
@@ -109,7 +116,7 @@ const bus = createIcc<MyEvents, MyRequests>();
 The bus is described by three role interfaces, so a unit can accept the slice it actually uses — and a test can hand it a stub of that slice instead of a full bus:
 
 ```ts
-import type { IccBus, IccEventBus, IccRequestBus } from 'icc';
+import type { IccBus, IccEventBus, IccRequestBus } from 'icc-js';
 
 function trackCart(bus: IccEventBus): void { /* only publishes and subscribes */ }
 function serveUsers(bus: IccRequestBus): void { /* only answers requests */ }
@@ -136,7 +143,7 @@ controller.abort(); // all three are gone
 
 ```tsx
 import { useEffect, useState } from 'react';
-import icc from 'icc';
+import icc from 'icc-js';
 
 function CartBadge() {
   const [count, setCount] = useState(0);
@@ -157,7 +164,7 @@ function CartBadge() {
 
 ```ts
 import { onScopeDispose, ref } from 'vue';
-import icc from 'icc';
+import icc from 'icc-js';
 
 export function useCartCount() {
   const count = ref(0);
