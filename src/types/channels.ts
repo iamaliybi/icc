@@ -136,18 +136,29 @@ export type EventPayload<E, C extends keyof E> = E[C];
 /**
  * Arguments accepted after the channel name by `send`, `sendSync` and the like.
  *
- * Resolves to an empty-ish tuple for a `void` channel, so a payload-less event
- * is sent as `send('modal:close')` and passing anything is a type error.
+ * Three cases, in this order:
+ *
+ * - a channel declared as `void` takes nothing, so `send('modal:close')` is the
+ *   only valid form and passing anything is an error;
+ * - an undeclared channel — payload `unknown`, which is what an unaugmented
+ *   {@link IccEvents} resolves to — takes an optional payload of any shape, so
+ *   the library stays usable before a single channel has been declared;
+ * - anything else requires exactly the declared payload.
  *
  * @typeParam P - The declared payload of the channel.
  *
  * @example
  * ```ts
- * type A = PayloadArgs<number>; // [payload: number]
- * type B = PayloadArgs<void>;   // [payload?: undefined]
+ * type A = PayloadArgs<number>;  // [payload: number]
+ * type B = PayloadArgs<void>;    // [payload?: undefined]
+ * type C = PayloadArgs<unknown>; // [payload?: unknown]
  * ```
  */
-export type PayloadArgs<P> = [P] extends [void] ? [payload?: undefined] : [payload: P];
+export type PayloadArgs<P> = [P] extends [void]
+	? [payload?: undefined]
+	: unknown extends P
+		? [payload?: P]
+		: [payload: P];
 
 /**
  * A value that may be delivered directly or through a promise.
