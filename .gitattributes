@@ -1,0 +1,5 @@
+# Normalise every text file to LF in the repository, matching .editorconfig.
+* text=auto eol=lf
+
+# Keep lockfiles and binaries untouched by diff heuristics.
+package-lock.json linguist-generated=true -diff
