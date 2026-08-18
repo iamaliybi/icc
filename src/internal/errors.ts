@@ -11,7 +11,7 @@ import type { ErrorReporter } from '../types/options';
  *
  * @internal
  */
-export function createIccError(code: IccErrorCode, channel: string, message: string): IccError {
+export const createIccError = (code: IccErrorCode, channel: string, message: string): IccError => {
 	const error = new Error(message) as IccError;
 
 	error.name = 'IccError';
@@ -19,7 +19,7 @@ export function createIccError(code: IccErrorCode, channel: string, message: str
 	error.channel = channel;
 
 	return error;
-}
+};
 
 /**
  * The reporter used when none is supplied.
@@ -29,7 +29,7 @@ export function createIccError(code: IccErrorCode, channel: string, message: str
  *
  * @internal
  */
-export const defaultErrorReporter: ErrorReporter = function (error, context): void {
+export const defaultErrorReporter: ErrorReporter = (error, context): void => {
 	if (typeof console !== 'undefined' && console && typeof console.error === 'function') {
 		console.error('[icc] listener for channel "' + context.channel + '" threw:', error);
 	}

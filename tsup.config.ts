@@ -8,9 +8,10 @@ export default defineConfig({
 	clean: true,
 	treeshake: true,
 	splitting: false,
-	// The bus has to run in whatever the consumer's browserslist allows, so the
-	// output stays at the lowest target esbuild can reliably emit. The runtime
-	// itself only relies on ES5 built-ins plus `Promise`.
+	// esbuild cannot emit ES5 — it refuses on `const` before it even reaches a
+	// class — so bundling stops at its floor and `scripts/downlevel.mjs` hands the
+	// last step to TypeScript. `npm run verify:es5` then re-parses the result at an
+	// ES5 target, which fails the build if anything newer survived.
 	target: 'es2015',
 	platform: 'browser',
 	outExtension({ format }) {

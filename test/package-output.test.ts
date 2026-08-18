@@ -6,6 +6,7 @@
 import { createRequire } from 'node:module';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { transform } from 'esbuild';
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(__dirname, '..');
@@ -123,7 +124,7 @@ describe('the type definitions', () => {
 	it.each(definitions)('%s documents the surface it declares', (file) => {
 		const contents = read(file);
 
-		for (const symbol of ['declare class Icc', 'declare function createIcc', 'interface IccEvents', 'interface IccBus']) {
+		for (const symbol of ['declare class Icc', 'declare const createIcc', 'interface IccEvents', 'interface IccBus']) {
 			expect(contents).toContain(symbol);
 		}
 
@@ -151,5 +152,39 @@ describe('the type definitions', () => {
 
 			expect(block, `${method} has no example above it`).toContain('@example');
 		}
+	});
+});
+
+describe('the ES5 guarantee', () => {
+	const bundles = [
+		{ file: 'dist/index.mjs', format: 'esm' },
+		{ file: 'dist/index.cjs', format: 'cjs' },
+	] as const;
+
+	// esbuild is the checker precisely because it cannot transform to ES5: aimed at
+	// an ES5 target it throws on the first construct it would have to lower, so a
+	// clean parse is proof that none is left. A regex would trip over `=>` in a string.
+	it.each(bundles)('$file parses as ES5', async ({ file, format }) => {
+		await expect(
+			transform(read(file), { target: 'es5', format, loader: 'js' }),
+		).resolves.toBeDefined();
+	});
+
+	it.each(bundles)('$file carries no ES6 syntax that a scan can spot either', ({ file }) => {
+		const contents = read(file);
+
+		// `...` is deliberately absent from this list: it appears inside an error
+		// message, which is exactly the false positive a parser does not fall for.
+		for (const forbidden of ['=>', 'const ', 'let ', 'class ', '`']) {
+			expect(contents, `${forbidden} survived into ${file}`).not.toContain(forbidden);
+		}
+	});
+
+	it('maps the ES5 output back to the original TypeScript, not to the bundle', () => {
+		const map = JSON.parse(read('dist/index.mjs.map')) as { sources: string[]; sourcesContent: string[] };
+
+		expect(map.sources.every((source) => source.endsWith('.ts'))).toBe(true);
+		expect(map.sources).toContain('../src/icc.ts');
+		expect(map.sourcesContent).toHaveLength(map.sources.length);
 	});
 });

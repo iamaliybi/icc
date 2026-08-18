@@ -3,7 +3,7 @@ import { EventDispatcher } from './internal/event-dispatcher';
 import { RequestBroker } from './internal/request-broker';
 import { createIccError, defaultErrorReporter } from './internal/errors';
 import { defaultScheduler } from './internal/scheduler';
-import { toSignal } from './internal/signals';
+import { noop, toSignal } from './internal/signals';
 import type {
 	EventChannel,
 	EventMap,
@@ -282,11 +282,10 @@ export class Icc<
 	 * times out or is aborted.
 	 */
 	public waitFor<C extends EventChannel<E>>(channel: C, options?: WaitForOptions): Promise<E[C]> {
-		const events = this._events;
 		const signal = toSignal(options && options.signal);
 		const timeout = options !== undefined ? options.timeout : undefined;
 
-		return new Promise<E[C]>(function (resolve, reject): void {
+		return new Promise<E[C]>((resolve, reject): void => {
 			if (signal !== undefined && signal.aborted) {
 				reject(abortReason(signal, channel));
 
@@ -294,30 +293,30 @@ export class Icc<
 			}
 
 			let timer: ReturnType<typeof setTimeout> | undefined;
-			let stopListening = function (): void {};
-			let stopWatchingSignal = function (): void {};
+			let stopListening: () => void = noop;
+			let stopWatchingSignal: () => void = noop;
 
-			const cleanUp = function (): void {
+			const cleanUp = (): void => {
 				if (timer !== undefined) clearTimeout(timer);
 
 				stopListening();
 				stopWatchingSignal();
 			};
 
-			stopListening = events.add(channel as string, function (payload: unknown): void {
+			stopListening = this._events.add(channel, (payload: unknown): void => {
 				cleanUp();
 				resolve(payload as E[C]);
 			}, true, undefined);
 
 			if (signal !== undefined) {
-				stopWatchingSignal = watchAbort(signal, function (): void {
+				stopWatchingSignal = watchAbort(signal, (): void => {
 					cleanUp();
 					reject(abortReason(signal, channel));
 				});
 			}
 
 			if (typeof timeout === 'number' && isFinite(timeout)) {
-				timer = setTimeout(function (): void {
+				timer = setTimeout((): void => {
 					cleanUp();
 					reject(createIccError(
 						'ERR_ICC_TIMEOUT',
@@ -561,29 +560,31 @@ export class Icc<
  * Kept local to `waitFor`, which needs to react to the abort rather than simply
  * be removed by it.
  */
-function watchAbort(signal: AbortSignal, onAbort: () => void): () => void {
+const watchAbort = (signal: AbortSignal, onAbort: () => void): (() => void) => {
 	if (typeof signal.addEventListener !== 'function') {
 		const previous = signal.onabort;
 
-		signal.onabort = function (this: AbortSignal, event: Event): void {
-			if (typeof previous === 'function') previous.call(this, event);
+		// The signal is closed over rather than read off `this`: an arrow function
+		// has no own `this`, and the receiver of an `onabort` call is the signal.
+		signal.onabort = (event: Event): void => {
+			if (typeof previous === 'function') previous.call(signal, event);
 			onAbort();
 		};
 
-		return function (): void {};
+		return noop;
 	}
 
 	signal.addEventListener('abort', onAbort);
 
-	return function (): void {
+	return (): void => {
 		if (typeof signal.removeEventListener === 'function') {
 			signal.removeEventListener('abort', onAbort);
 		}
 	};
-}
+};
 
 /** The reason a signal was aborted with, or a tagged error when it carries none. */
-function abortReason(signal: AbortSignal, channel: string): unknown {
+const abortReason = (signal: AbortSignal, channel: string): unknown => {
 	const reason = (signal as { reason?: unknown }).reason;
 
 	if (reason !== undefined) return reason;
@@ -593,4 +594,4 @@ function abortReason(signal: AbortSignal, channel: string): unknown {
 		channel,
 		'Aborted while waiting for channel "' + channel + '".',
 	);
-}
+};

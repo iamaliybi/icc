@@ -9,7 +9,7 @@ Components that sit far apart in the tree often need to talk: a toast triggered 
 - **Strongly typed.** Declare your channels once and get autocompletion, payload checking and inferred responses everywhere.
 - **Documented where you read it.** Every method, option and type carries JSDoc with examples, so hovering in the IDE is enough — no tab to the docs.
 - **Framework agnostic.** Works with React, Vue, Angular, Svelte or no framework at all.
-- **Small and portable.** Under 2 KB minified and gzipped, ES2015 output, no polyfill needed beyond `Promise`.
+- **Small and portable.** Under 2 KB minified and gzipped, compiled all the way down to **ES5**, no polyfill needed beyond `Promise`.
 
 ## Installation
 
@@ -265,6 +265,9 @@ src/
     errors.ts            error construction and the default reporter
   icc.ts       the Icc facade, composing the three collaborators
   index.ts     public entry: createIcc, the shared instance, the types
+scripts/
+  downlevel.mjs   transpiles the bundles to ES5 and chains their source maps
+  verify-es5.mjs  fails the build if anything newer than ES5 survived
 ```
 
 The class holds no dispatch logic of its own: it composes a registry, a dispatcher and a broker, and hands the last two their timing and reporting strategies through the constructor. That is why `scheduler` and `onError` are options rather than globals — the bus never reaches for `queueMicrotask` or `console` by itself, which is also what makes it trivial to drive deterministically in a test.
@@ -273,9 +276,13 @@ Reading `src/types/` is meant to be enough to understand the whole mechanism, wi
 
 ## Browser support
 
-The published bundle targets ES2015 and touches no API newer than ES5 plus `Promise`, which the request API requires. `queueMicrotask` is used when available and falls back to the promise job queue, then to `setTimeout`. `AbortSignal` is entirely optional: the disposers work without it.
+The published bundles are **ES5**: no `const`, no arrow functions, no classes, nothing an older engine has to be taught. The build fails if a single ES6 construct survives, and the test suite asserts the same thing independently.
 
-Both ESM (`dist/index.mjs`) and CommonJS (`dist/index.cjs`) builds ship with their own type definitions.
+The runtime API surface is just as conservative. Nothing newer than ES5 is used except `Promise`, which the request half inherently needs — `Map`, `Set`, `Symbol` and iterators are all absent, which the suite also enforces by scanning the bundle. `queueMicrotask` is used when available and falls back to the promise job queue, then to `setTimeout`. `AbortSignal` is entirely optional: the disposers work without it, and a legacy `onabort`-only signal is handled too.
+
+In practice that means the broadcast half runs anywhere down to IE9, and the request half runs anywhere a `Promise` exists — natively or through any polyfill you already ship.
+
+Both ESM (`dist/index.mjs`) and CommonJS (`dist/index.cjs`) builds ship with their own type definitions and source maps that point back at the original TypeScript.
 
 ## Testing
 
@@ -308,11 +315,25 @@ npm run test:coverage
 
 ```bash
 npm install
-npm run build      # bundles ESM + CJS + type definitions into dist/
+npm run build      # bundle, downlevel to ES5, then verify the result really is ES5
 npm run dev        # rebuilds on change
 npm run typecheck  # tsc --noEmit over src
 npm run test:types # the type-level suite on its own
 ```
+
+### Code style
+
+`src/` is written in modern TypeScript — ES6 and above, arrow functions throughout, no `function` keyword anywhere. Class methods stay method shorthand rather than arrow-valued class fields, so they live on the prototype and a subclass can still override them and call `super`.
+
+### How ES5 output is produced
+
+esbuild, which tsup builds on, cannot emit ES5 at all: pointed at that target it refuses on `const` before it even reaches a class. The pipeline therefore splits the work:
+
+1. **tsup** bundles `src/` into one ESM and one CJS file at esbuild's floor, and emits the type definitions;
+2. **`scripts/downlevel.mjs`** hands the last step to TypeScript, whose ES5 emit predates all of this, and chains the two source maps so the published map still points at the original `.ts`;
+3. **`scripts/verify-es5.mjs`** re-parses both bundles at an ES5 target — using esbuild's refusal as the check — and fails the build if anything newer survived.
+
+The same guarantee is asserted from the test suite, so it cannot regress quietly.
 
 ## License
 
