@@ -189,7 +189,7 @@ test('removal helpers clean up listeners, handlers and channels', async () => {
 	bus.removeHandler('a');
 	assert.equal(bus.hasHandler('a'), false);
 
-	bus.removeChannel('a');
+	bus.removeChannels('a');
 	assert.deepEqual(bus.channelNames(), ['b']);
 
 	bus.clear();
@@ -207,6 +207,82 @@ test('inherited object members are not mistaken for channels', async () => {
 	assert.equal(seen, 'safe');
 	assert.deepEqual(bus.channelNames(), ['__proto__']);
 	assert.equal(bus.listenerCount('constructor'), 0);
+});
+
+test('a one-shot handler can also be registered with handleOnce', async () => {
+	const bus = createIcc();
+
+	bus.handleOnce('who', () => 'once');
+
+	assert.equal(await bus.invoke('who'), 'once');
+	assert.equal(bus.hasHandler('who'), false);
+});
+
+test('waitFor resolves with the payload of the next emission', async () => {
+	const bus = createIcc();
+
+	setTimeout(() => bus.send('app:ready', { at: 1 }), 0);
+
+	assert.deepEqual(await bus.waitFor('app:ready'), { at: 1 });
+	assert.equal(bus.listenerCount('app:ready'), 0, 'the listener is always removed');
+});
+
+test('waitFor rejects once the timeout elapses, and stops listening', async () => {
+	const bus = createIcc();
+
+	await assert.rejects(
+		() => bus.waitFor('never', { timeout: 10 }),
+		(error) => error.code === 'ERR_ICC_TIMEOUT' && error.channel === 'never',
+	);
+
+	assert.equal(bus.listenerCount('never'), 0);
+});
+
+test('waitFor rejects with the reason of an aborted signal', async () => {
+	const bus = createIcc();
+	const controller = new AbortController();
+	const pending = bus.waitFor('never', { signal: controller });
+
+	controller.abort(new Error('component unmounted'));
+
+	await assert.rejects(() => pending, /component unmounted/);
+	assert.equal(bus.listenerCount('never'), 0);
+});
+
+test('waitFor rejects immediately on an already aborted signal', async () => {
+	const bus = createIcc();
+	const controller = new AbortController();
+
+	controller.abort();
+
+	await assert.rejects(() => bus.waitFor('never', { signal: controller }));
+	assert.equal(bus.listenerCount('never'), 0);
+});
+
+test('an injected scheduler decides when send dispatches', () => {
+	const queue = [];
+	const bus = createIcc({ scheduler: (task) => queue.push(task) });
+	let seen = null;
+
+	bus.on('x', (payload) => { seen = payload; });
+	bus.send('x', 'queued');
+
+	assert.equal(seen, null, 'nothing runs until the scheduler releases it');
+	assert.equal(queue.length, 1);
+
+	queue.pop()();
+
+	assert.equal(seen, 'queued');
+});
+
+test('a synchronous scheduler makes send behave like sendSync', () => {
+	const bus = createIcc({ scheduler: (task) => task() });
+	let seen = null;
+
+	bus.on('x', (payload) => { seen = payload; });
+	bus.send('x', 'now');
+
+	assert.equal(seen, 'now');
 });
 
 test('the default export is a shared instance of the exported class', () => {
