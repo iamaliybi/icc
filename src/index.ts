@@ -88,12 +88,10 @@ export type {
  *
  * @see {@link icc} for the shared instance.
  */
-export function createIcc<
+export const createIcc = <
 	E extends EventMap<E> = ResolvedEvents,
 	R extends RequestMap<R> = ResolvedRequests,
->(options?: IccOptions): Icc<E, R> {
-	return new Icc<E, R>(options);
-}
+>(options?: IccOptions): Icc<E, R> => new Icc<E, R>(options);
 
 /**
  * Version tag is part of the key on purpose: two majors loaded side by side get
@@ -102,16 +100,16 @@ export function createIcc<
 const GLOBAL_KEY = '__ICC_DEFAULT_BUS_V1__';
 
 /** The global object of whichever environment the bundle ended up in. */
-function getGlobalScope(): Record<string, unknown> | undefined {
+const getGlobalScope = (): Record<string, unknown> | undefined => {
 	if (typeof globalThis !== 'undefined') return globalThis as unknown as Record<string, unknown>;
 	if (typeof self !== 'undefined') return self as unknown as Record<string, unknown>;
 	if (typeof window !== 'undefined') return window as unknown as Record<string, unknown>;
 
 	return undefined;
-}
+};
 
 /** Returns the shared bus, creating and publishing it on first use. */
-function resolveDefaultBus(): Icc {
+const resolveDefaultBus = (): Icc => {
 	const scope = getGlobalScope();
 	if (scope === undefined) return new Icc();
 
@@ -125,7 +123,7 @@ function resolveDefaultBus(): Icc {
 	scope[GLOBAL_KEY] = created;
 
 	return created;
-}
+};
 
 /**
  * The application-wide bus, shared by every module that imports it.

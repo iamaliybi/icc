@@ -5,18 +5,18 @@ import type { AbortLike } from '../types/handlers';
  *
  * @internal
  */
-export function noop(): void {}
+export const noop = (): void => {};
 
 /**
  * Narrows an {@link AbortLike} down to the signal it carries.
  *
  * @internal
  */
-export function toSignal(source: AbortLike | undefined): AbortSignal | undefined {
+export const toSignal = (source: AbortLike | undefined): AbortSignal | undefined => {
 	if (!source) return undefined;
 
 	return 'signal' in source ? source.signal : source;
-}
+};
 
 /**
  * Wires `dispose` to the signal and returns a disposer that also detaches the
@@ -30,19 +30,19 @@ export function toSignal(source: AbortLike | undefined): AbortSignal | undefined
  *
  * @internal
  */
-export function linkSignal(signal: AbortSignal | undefined, dispose: () => void): () => void {
+export const linkSignal = (signal: AbortSignal | undefined, dispose: () => void): (() => void) => {
 	if (!signal) return dispose;
 
 	if (typeof signal.addEventListener === 'function') {
 		let disposeAndDetach: () => void = dispose;
 
-		const onAbort = function (): void {
+		const onAbort = (): void => {
 			disposeAndDetach();
 		};
 
 		signal.addEventListener('abort', onAbort);
 
-		disposeAndDetach = function (): void {
+		disposeAndDetach = (): void => {
 			if (typeof signal.removeEventListener === 'function') {
 				signal.removeEventListener('abort', onAbort);
 			}
@@ -55,10 +55,12 @@ export function linkSignal(signal: AbortSignal | undefined, dispose: () => void)
 
 	const previous = signal.onabort;
 
-	signal.onabort = function (this: AbortSignal, event: Event): void {
-		if (typeof previous === 'function') previous.call(this, event);
+	// The signal is closed over rather than read off `this`: an arrow function has
+	// no own `this`, and the receiver of an `onabort` call is the signal anyway.
+	signal.onabort = (event: Event): void => {
+		if (typeof previous === 'function') previous.call(signal, event);
 		dispose();
 	};
 
 	return dispose;
-}
+};

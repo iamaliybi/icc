@@ -43,9 +43,8 @@ import type {
  *
  * @example
  * ```ts
- * function subscribe(bus: IccEventBus): Unsubscribe {
- *   return bus.on('cart:item-added', (item) => render(item));
- * }
+ * const subscribe = (bus: IccEventBus): Unsubscribe =>
+ *   bus.on('cart:item-added', (item) => render(item));
  * ```
  */
 export interface IccEventBus<E extends EventMap<E> = ResolvedEvents> {
@@ -429,10 +428,10 @@ export interface IccChannelAdmin<
  *
  * @example
  * ```ts
- * function wire(bus: IccBus): void {
+ * const wire = (bus: IccBus): void => {
  *   bus.handle('app:version', () => VERSION);
  *   bus.on('app:ready', () => bus.send('analytics:track', { name: 'ready' }));
- * }
+ * };
  * ```
  */
 export interface IccBus<

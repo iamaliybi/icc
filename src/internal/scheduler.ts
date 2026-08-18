@@ -14,11 +14,11 @@ import type { Scheduler } from '../types/options';
  *
  * @internal
  */
-export const defaultScheduler: Scheduler = (function (): Scheduler {
+export const defaultScheduler: Scheduler = ((): Scheduler => {
 	if (typeof queueMicrotask === 'function') {
-		return function (task: () => void): void {
-			// Wrapped rather than passed by reference: an unbound `queueMicrotask`
-			// throws an illegal invocation error in some browsers.
+		// Wrapped rather than passed by reference: an unbound `queueMicrotask`
+		// throws an illegal invocation error in some browsers.
+		return (task: () => void): void => {
 			queueMicrotask(task);
 		};
 	}
@@ -26,12 +26,12 @@ export const defaultScheduler: Scheduler = (function (): Scheduler {
 	if (typeof Promise === 'function') {
 		const resolved = Promise.resolve();
 
-		return function (task: () => void): void {
+		return (task: () => void): void => {
 			resolved.then(task);
 		};
 	}
 
-	return function (task: () => void): void {
+	return (task: () => void): void => {
 		setTimeout(task, 0);
 	};
 })();

@@ -39,7 +39,7 @@ export class EventDispatcher {
 
 		record.listeners.push(subscription);
 
-		return linkSignal(signal, function (): void {
+		return linkSignal(signal, (): void => {
 			remove(record, subscription);
 		});
 	}
@@ -89,10 +89,8 @@ export class EventDispatcher {
 
 	/** Hands the payload to every listener once the current call stack unwinds. */
 	public defer(channel: string, payload: unknown): void {
-		const self = this;
-
-		this._scheduler(function (): void {
-			self.emit(channel, payload);
+		this._scheduler((): void => {
+			this.emit(channel, payload);
 		});
 	}
 
@@ -106,7 +104,7 @@ export class EventDispatcher {
 
 		let total = 0;
 
-		this._registry.each(function (record): void {
+		this._registry.each((record): void => {
 			total += record.listeners.length;
 		});
 
@@ -121,7 +119,7 @@ export class EventDispatcher {
 			return;
 		}
 
-		this._registry.each(function (record): void {
+		this._registry.each((record): void => {
 			clearRecord(record);
 		});
 	}
@@ -144,17 +142,17 @@ export class EventDispatcher {
  * listener was added: every earlier removal shifts the indices that follow it,
  * so a stored index would eventually point at somebody else's listener.
  */
-function remove(record: ChannelRecord, subscription: Subscription): void {
+const remove = (record: ChannelRecord, subscription: Subscription): void => {
 	if (!subscription.active) return;
 
 	subscription.active = false;
 
 	const index = record.listeners.indexOf(subscription);
 	if (index !== -1) record.listeners.splice(index, 1);
-}
+};
 
 /** Deactivates and drops every listener of a record. */
-function clearRecord(record: ChannelRecord | undefined): void {
+const clearRecord = (record: ChannelRecord | undefined): void => {
 	if (record === undefined) return;
 
 	for (let i = 0; i < record.listeners.length; i += 1) {
@@ -162,4 +160,4 @@ function clearRecord(record: ChannelRecord | undefined): void {
 	}
 
 	record.listeners.length = 0;
-}
+};

@@ -35,7 +35,7 @@ export class RequestBroker {
 
 		record.handler = entry;
 
-		return linkSignal(signal, function (): void {
+		return linkSignal(signal, (): void => {
 			// Identity check: a handler installed later has to survive the disposer
 			// of the one it replaced.
 			if (record.handler === entry) record.handler = null;
@@ -83,7 +83,7 @@ export class RequestBroker {
 
 	/** Removes every responder of the bus. */
 	public clear(): void {
-		this._registry.each(function (record): void {
+		this._registry.each((record): void => {
 			record.handler = null;
 		});
 	}
