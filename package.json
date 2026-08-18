@@ -1,6 +1,6 @@
 {
   "name": "icc",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Inter-Component Communication: a tiny, strongly typed, zero-dependency event bus for the browser, modelled after the Electron IPC API.",
   "keywords": [
     "event-bus",
@@ -49,15 +49,23 @@
   "sideEffects": false,
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
-    "build": "npm run clean && tsup",
+    "build": "npm run clean && tsup && npm run build:types:mjs",
+    "build:types:mjs": "node -e \"require('node:fs').copyFileSync('dist/index.d.ts','dist/index.d.mts')\"",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test \"test/*.test.*js\"",
+    "test": "npm run build && vitest run --typecheck.enabled",
+    "test:watch": "vitest",
+    "test:types": "vitest run --typecheck.enabled --typecheck.only",
+    "test:coverage": "npm run build && vitest run --coverage",
     "prepublishOnly": "npm run typecheck && npm run test"
   },
   "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@vitest/coverage-v8": "^4.1.10",
+    "jsdom": "^30.0.1",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
   },
   "engines": {
     "node": ">=18"

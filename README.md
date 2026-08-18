@@ -277,14 +277,41 @@ The published bundle targets ES2015 and touches no API newer than ES5 plus `Prom
 
 Both ESM (`dist/index.mjs`) and CommonJS (`dist/index.cjs`) builds ship with their own type definitions.
 
+## Testing
+
+```bash
+npm test
+```
+
+That builds the package and runs the whole suite — 187 runtime tests plus the type-level ones — in one pass. The suite is deliberately spread across environments, because a component bus that only works in one of them is not framework agnostic:
+
+| Suite | Environment | What it guards |
+| --- | --- | --- |
+| `event-bus`, `request-bus`, `wait-for`, `registry`, `abort-signal`, `error-reporting`, `scheduler` | Node, no DOM | Dispatch order, disposer identity, re-entrancy, one-shot semantics, failure routing, hostile channel names |
+| `framework-agnostic` | Node, no DOM | React, Vue, Angular and Svelte teardown shapes, driven without any of those frameworks |
+| `dom-environment` | jsdom | Real DOM events, a controller shared with `addEventListener`, the shared instance on `window` |
+| `bare-realm` | a fresh `node:vm` realm | The built bundle with no `queueMicrotask`, no `Promise`, no `console`, no `require` and no DOM |
+| `package-output` | Node | Both builds, their type definitions, and the manifest that points at them |
+| `types.test-d` | `tsc` | Payload inference, response inference, and every call that must *not* compile |
+
+The bare realm is the strictest of them: the bundle is evaluated with nothing but the globals it is handed, which is what proves the scheduler fallback chain, the absence of runtime dependencies, and that exactly one global — the versioned bus key — is ever published.
+
+```bash
+npm run test:watch
+```
+
+```bash
+npm run test:coverage
+```
+
 ## Development
 
 ```bash
 npm install
 npm run build      # bundles ESM + CJS + type definitions into dist/
 npm run dev        # rebuilds on change
-npm run typecheck  # tsc --noEmit
-npm test           # builds, then runs the suite against the built output
+npm run typecheck  # tsc --noEmit over src
+npm run test:types # the type-level suite on its own
 ```
 
 ## License
